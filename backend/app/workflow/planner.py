@@ -19,6 +19,9 @@ from app.core.event_bus import event_bus
 from app.models.enums import EventType, AgentName, AgentStatus, Severity, WorkflowStatus
 from app.models.mission_context import SharedMissionContext
 from app.models.execution_plan import ExecutionPlan
+from app.models.evidence import Evidence
+from app.models.evidence_bundle import EvidenceBundle
+from app.arbiter.decision_engine import ArbiterDecisionEngine
 from app.core.event_publisher import _create_base_event, publish_agent_started, publish_agent_completed
 from app.workflow.graph import WorkflowGraph
 from app.workflow.dispatcher import WorkflowDispatcher
@@ -133,18 +136,57 @@ async def run_planner_agent(mission_id: str, claim_id: str, context: SharedMissi
     await mission_manager.update_workflow_status(mission_id, WorkflowStatus.ARBITRATING)
     await mission_manager.update_stage(mission_id, "ARBITRATING")
     
-    # Publish final planner_completed or workflow stage updated events (we can publish stage complete)
+    # Reconstruct Evidence from specialist results dicts
+    provider_findings = None
+    prov_res = results.get("ProviderAgent")
+    if prov_res and prov_res.get("status") != "error":
+        try:
+            provider_findings = Evidence(**prov_res)
+        except Exception as err:
+            logger.error(f"[PLANNER] Failed to parse ProviderAgent results into Evidence: {err}")
+
+    policy_findings = None
+    pol_res = results.get("PolicyAgent")
+    if pol_res and pol_res.get("status") != "error":
+        try:
+            policy_findings = Evidence(**pol_res)
+        except Exception as err:
+            logger.error(f"[PLANNER] Failed to parse PolicyAgent results into Evidence: {err}")
+
+    pattern_findings = None
+    pat_res = results.get("PatternAgent")
+    if pat_res and pat_res.get("status") != "error":
+        try:
+            pattern_findings = Evidence(**pat_res)
+        except Exception as err:
+            logger.error(f"[PLANNER] Failed to parse PatternAgent results into Evidence: {err}")
+
+    # Build consolidated EvidenceBundle
+    bundle = EvidenceBundle(
+        mission_id=mission_id,
+        provider_findings=provider_findings,
+        policy_findings=policy_findings,
+        pattern_findings=pattern_findings,
+        metadata={"execution_results": results}
+    )
+
+    # 9. Evaluate Adjudication via Arbiter Decision Engine
+    decision_packet = await ArbiterDecisionEngine.evaluate_bundle(bundle)
+    
+    # Store the DecisionPacket in mission metadata
+    await mission_manager.attach_metadata(mission_id, {"decision_packet": decision_packet.model_dump()})
+    
+    # Publish final workflow stage updated / workflow completed events
     complete_event = _create_base_event(
         mission_id=mission_id,
-        event_type=EventType.WORKFLOW_COMPLETED,  # Let's say planner stage completed successfully
+        event_type=EventType.WORKFLOW_COMPLETED,
         agent=AgentName.PLANNER,
         status=AgentStatus.SUCCESS,
-        title="Planner Orchestration Completed",
-        message="All concurrent analysis lanes resolved successfully. Compiled evidence compiled and staged for Arbiter.",
-        severity=Severity.SUCCESS,
-        metadata={"results": results}
+        title="Mission Adjudication Finalized",
+        message=f"All specialists and Arbiter Decision Engine complete. Final Recommendation: [{decision_packet.recommendation}] (Confidence: {decision_packet.confidence}%).",
+        severity=Severity.SUCCESS if decision_packet.recommendation == "APPROVE" else (Severity.WARN if decision_packet.recommendation == "ESCALATE" else Severity.ERROR),
+        metadata={"results": results, "decision_packet": decision_packet.model_dump()}
     )
-    # Note: WORKFLOW_COMPLETED represents the end of this demo workflow execution step.
     await event_bus.publish(complete_event)
     
     # Finally transition Mission to COMPLETED status

@@ -8,9 +8,15 @@ monospaced log line formats during development / debug sessions.
 import logging
 import sys
 import json
+import contextvars
 from typing import Any, Dict
 from datetime import datetime, timezone
 from app.core.config import settings
+
+
+# Context variables for thread-safe request and workflow tracing
+request_id_ctx: contextvars.ContextVar[Any] = contextvars.ContextVar("request_id", default=None)
+mission_id_ctx: contextvars.ContextVar[Any] = contextvars.ContextVar("mission_id", default=None)
 
 
 class StructuredJSONFormatter(logging.Formatter):
@@ -27,6 +33,8 @@ class StructuredJSONFormatter(logging.Formatter):
             "logger": record.name,
             "filename": record.filename,
             "line_number": record.lineno,
+            "request_id": request_id_ctx.get(),
+            "mission_id": mission_id_ctx.get()
         }
         
         # Include additional extra values attached to the LogRecord dict if any
@@ -37,6 +45,27 @@ class StructuredJSONFormatter(logging.Formatter):
             log_payload["exception"] = self.formatException(record.exc_info)
             
         return json.dumps(log_payload)
+
+
+class ContextualDevelopmentFormatter(logging.Formatter):
+    """
+    Log formatter that embeds request_id and mission_id tracking tags inside the 
+    standard monospaced console layout for developer ease.
+    """
+    def format(self, record: logging.LogRecord) -> str:
+        req_id = request_id_ctx.get()
+        mission_id = mission_id_ctx.get()
+        
+        tracing_info = ""
+        if req_id or mission_id:
+            tracing_info = f" [req:{req_id or '-'}|mission:{mission_id or '-'}]"
+            
+        log_str = super().format(record)
+        if tracing_info:
+            parts = log_str.split(" - ", 1)
+            if len(parts) == 2:
+                return f"{parts[0]}{tracing_info} - {parts[1]}"
+        return log_str
 
 
 def configure_logger() -> logging.Logger:
@@ -57,7 +86,7 @@ def configure_logger() -> logging.Logger:
     
     if settings.DEBUG:
         # Development Monospaced Formatter
-        formatter = logging.Formatter(
+        formatter = ContextualDevelopmentFormatter(
             fmt="%(asctime)s [%(levelname)s] %(name)s (%(filename)s:%(lineno)d) - %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S"
         )

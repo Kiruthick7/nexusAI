@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.core.mission_manager import mission_manager
 from app.models.enums import WorkflowStatus, EventType
-from app.services.intake_agent import run_intake_agent
+from app.services.intake_agent import run_intake_agent, DocumentClassificationError
 
 client = TestClient(app)
 
@@ -144,3 +144,71 @@ def test_api_claims_endpoint_form_multipart_and_fallback() -> None:
     form_payload = form_response.json()
     assert "mission_id" in form_payload
     assert "claim_id" in form_payload
+
+
+def test_document_classification_rejection_mock() -> None:
+    """
+    Verifies that when a non-invoice document is uploaded (e.g. dog.png in mock mode),
+    it is correctly flagged as invalid and raises DocumentClassificationError.
+    """
+    async def run_test() -> None:
+        mission_id = "RUN-7777"
+        claim_id = "NEX-7777"
+        await mission_manager.create_mission(mission_id=mission_id, claim_id=claim_id)
+
+        with patch("app.services.intake_agent.settings") as mock_settings:
+            mock_settings.GEMINI_API_KEY = ""  # Force mock mode
+            
+            with pytest.raises(DocumentClassificationError) as exc_info:
+                await run_intake_agent(
+                    mission_id=mission_id,
+                    claim_id=claim_id,
+                    file_bytes=b"dog-photo-bytes",
+                    filename="dog.png"
+                )
+            
+            assert "classified as non-invoice content" in str(exc_info.value)
+
+    asyncio.run(run_test())
+
+
+def test_document_classification_rejection_live() -> None:
+    """
+    Verifies that when Gemini live-mode parses a document and flags is_valid_invoice: False,
+    run_intake_agent correctly triggers a DocumentClassificationError.
+    """
+    async def run_test() -> None:
+        mission_id = "RUN-6666"
+        claim_id = "NEX-6666"
+        await mission_manager.create_mission(mission_id=mission_id, claim_id=claim_id)
+
+        # Mock Response flagging the document as a dog/pet photo
+        mock_response = MagicMock()
+        mock_response.text = (
+            '{"is_valid_invoice": false, "rejection_reason": "The uploaded file contains a photo of an animal instead of an invoice.", '
+            '"vendor_name": null, "gstin": null, "invoice_number": null, "amount": null, "currency": null, '
+            '"date": null, "category": null, "employee_id": null, '
+            '"confidence": {"vendor_name": 0.0, "gstin": 0.0, "invoice_number": 0.0, '
+            '"amount": 0.0, "currency": 0.0, "date": 0.0, "category": 0.0, "employee_id": 0.0}}'
+        )
+
+        with patch("app.services.intake_agent.settings") as mock_settings:
+            mock_settings.GEMINI_API_KEY = "mock-key"
+            mock_settings.MODEL_NAME = "gemini-3.5-flash"
+
+            with patch("google.genai.Client") as mock_client_class:
+                mock_client = MagicMock()
+                mock_client_class.return_value = mock_client
+                mock_client.models.generate_content.return_value = mock_response
+
+                with pytest.raises(DocumentClassificationError) as exc_info:
+                    await run_intake_agent(
+                        mission_id=mission_id,
+                        claim_id=claim_id,
+                        file_bytes=b"live-dog-bytes",
+                        filename="arbitrary_bill.png"
+                    )
+
+                assert "photo of an animal instead of an invoice" in str(exc_info.value)
+
+    asyncio.run(run_test())
