@@ -55,7 +55,7 @@ Nexus AI organizes execution into a clean **orchestration-specialist dichotomy**
 5. **Pattern Agent**: Runs anomaly detection, historical frequency analysis, and flags behavior profiles.
 6. **Arbiter (Decision Engine)**: Evaluates structured findings from all specialists against a strict logical decision boundary. Never thinks independently; acts as a pure, deterministic evidence evaluator.
 
-### 2.3 Gemma Intelligence Layer (Gemma 4 26B)
+### 2.3 Gemma Intelligence Layer (Gemma 2 27B)
 An independent service utilizing `GEMMA_MODEL` to run deep behavioral summaries, executive explainability, and consistency audits. Placed strictly out-of-band: if Gemma is unavailable, the core workflow completes unimpeded.
 
 ### 2.4 Human Escalation Service

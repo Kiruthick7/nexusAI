@@ -5,8 +5,12 @@ and mock playback scenario runners in the Nexus AI backend.
 
 from fastapi.testclient import TestClient
 from app.main import app
+from app.core.config import settings
 from app.core.event_bus import event_bus
 from app.core.mission_manager import mission_manager
+
+# Enable DEMO_MODE for testing simulation endpoints
+settings.DEMO_MODE = True
 
 client = TestClient(app)
 

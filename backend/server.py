@@ -14,7 +14,9 @@ def start_server() -> None:
     """
     Launches the Uvicorn application server instance based on settings configurations.
     """
-    host = "127.0.0.1" if settings.DEBUG else "0.0.0.0"
+    import os
+    is_container = os.path.exists("/.dockerenv") or os.environ.get("K_SERVICE") is not None
+    host = "0.0.0.0" if (is_container or not settings.DEBUG) else "127.0.0.1"
     port = settings.PORT
     
     logger.info(f"Starting Nexus AI Operations Platform on http://{host}:{port}")

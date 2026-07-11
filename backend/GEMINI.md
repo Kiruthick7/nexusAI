@@ -63,7 +63,7 @@ Every developer (human or AI) must conform to these standards:
 ## ⚙️ 4. Environment Variables Policy
 
 - **Templating**: All required configuration variables must exist in `.env.example` with empty values. Never commit actual secret keys or active database strings.
-- **Naming Conventions**: Use `UPPER_SNAKE_CASE` for environment configuration parameters (e.g., `LOCAL_MODEL`).
+- **Naming Conventions**: Use `UPPER_SNAKE_CASE` for environment configuration parameters (e.g., `MODEL_NAME`).
 - **Pydantic Validation**: All configurations must be mapped to `app/core/config.py` with validated type wrappers (e.g. `PORT: int = 8000`).
 
 ---

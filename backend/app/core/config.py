@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # FastAPI Application Config
     PORT: int = 8000
     DEBUG: bool = True
+    ALLOWED_ORIGINS: str = "*"
     
     # AI/ML Provider configs
     GEMINI_API_KEY: Optional[str] = None
@@ -38,11 +39,6 @@ class Settings(BaseSettings):
     CLOUD_SQL_DATABASE: Optional[str] = None
     CLOUD_SQL_USER: Optional[str] = None
     CLOUD_SQL_PASSWORD: Optional[str] = None
-    
-    # Hugging Face endpoint / local model override
-    HF_API_KEY: Optional[str] = None
-    HF_ENDPOINT: Optional[str] = None
-    LOCAL_MODEL: Optional[str] = "gemma-4-e4b"
 
     # Demo Mode
     DEMO_MODE: bool = False

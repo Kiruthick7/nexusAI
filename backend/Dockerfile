@@ -10,7 +10,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY pyproject.toml uv.lock ./
 
 # Compile virtual environment dependencies cleanly
-RUN uv venv .venv && uv pip install --no-cache -r pyproject.toml
+RUN uv venv .venv && uv pip compile pyproject.toml -o requirements.txt && uv pip install --no-cache -r requirements.txt
 
 # Stage 2: Final lightweight runtime stage
 FROM python:3.12-slim AS runtime

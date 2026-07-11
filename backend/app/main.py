@@ -35,11 +35,12 @@ app_start_time = time.time()
 # Register global contextual tracing middleware first
 app.add_middleware(TracingAndLoggingMiddleware)
 
-# Enable CORS to allow local and production frontends to connect seamlessly
+origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",")] if settings.ALLOWED_ORIGINS else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=False if "*" in origins else True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

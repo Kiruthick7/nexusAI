@@ -14,6 +14,8 @@ export function Navbar() {
     activeMissionId,
     startSimulation,
     isSimulating,
+    dataMode,
+    liveMission,
   } = useStore();
   const [mounted, setSmounted] = useState(false);
 
@@ -36,19 +38,30 @@ export function Navbar() {
           <span className="text-xl font-bold tracking-tight text-on-surface">Nexus AI</span>
         </div>
         <nav className="hidden md:flex gap-4 ml-6">
-          {(["orchestration", "claims", "health", "settings"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`font-label-sm text-xs uppercase tracking-wider py-2 px-3 rounded transition-all duration-200 ${
-                activeTab === tab
-                  ? "bg-primary-container/20 text-primary border border-primary/30 font-bold shadow-[0_0_15px_rgba(0,82,204,0.1)]"
-                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
-              }`}
-            >
-              {tab === "orchestration" ? "Mission Control" : tab}
-            </button>
-          ))}
+          {(["orchestration", "claims", "health", "settings"] as const).map((tab) => {
+            const isTabActive =
+              activeTab === tab ||
+              (tab === "claims" && ["claims", "policy", "fraud", "parser", "history"].includes(activeTab));
+            return (
+              <button
+                key={tab}
+                onClick={() => {
+                  if (tab === "claims") {
+                    setActiveTab("history");
+                  } else {
+                    setActiveTab(tab);
+                  }
+                }}
+                className={`font-label-sm text-xs uppercase tracking-wider py-2 px-3 rounded transition-all duration-200 ${
+                  isTabActive
+                    ? "bg-primary-container/20 text-primary border border-primary/30 font-bold shadow-[0_0_15px_rgba(0,82,204,0.15)]"
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+                }`}
+              >
+                {tab === "orchestration" ? "Mission Control" : tab}
+              </button>
+            );
+          })}
         </nav>
       </div>
 
@@ -61,6 +74,11 @@ export function Navbar() {
             onChange={(e) => startSimulation(e.target.value)}
             className="bg-transparent text-xs font-semibold text-primary font-mono outline-none border-none cursor-pointer pr-1"
           >
+            {dataMode === "LIVE" && liveMission && (
+              <option value={liveMission.id} className="bg-surface text-on-surface font-mono">
+                {liveMission.id} ({liveMission.status})
+              </option>
+            )}
             {Object.keys(mockMissions).map((id) => (
               <option key={id} value={id} className="bg-surface text-on-surface font-mono">
                 {id} ({mockMissions[id].status})
@@ -92,17 +110,7 @@ export function Navbar() {
           )}
         </button>
 
-        {/* Search */}
-        <button className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors duration-200">
-          <Search className="w-5 h-5" />
-        </button>
 
-        {/* Notifications */}
-        <button className="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors duration-200 relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full animate-ping"></span>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
-        </button>
 
         {/* Dark Mode Toggle */}
         <button
@@ -130,7 +138,7 @@ export function Navbar() {
           </div>
           <div className="hidden lg:flex flex-col text-left">
             <span className="text-xs font-semibold text-on-surface">Admin Session</span>
-            <span className="text-[10px] text-on-surface-variant font-mono">ENV: LIVE</span>
+            <span className="text-[10px] text-on-surface-variant font-mono">ENV: {dataMode}</span>
           </div>
         </div>
       </div>

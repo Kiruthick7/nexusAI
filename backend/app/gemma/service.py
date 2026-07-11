@@ -97,10 +97,10 @@ class GemmaIntelligenceService:
     ) -> GemmaExplanationPacket:
         """Compiles a safe, zero-dependency local fallback packet under API errors or offline status."""
         logger.info(f"[GEMMA SERVICE] Compiling procedural fallback packet for mission={mission_id}")
-        
+
         # Compute procedural review consistency checks
         review_status, review_reason = run_procedural_consistency_check(decision_packet)
-        
+
         reason = decision_packet.get("reason", "Manual adjudication override initiated.")
         rec = decision_packet.get("recommendation", "ESCALATE")
 
@@ -123,10 +123,10 @@ class GemmaIntelligenceService:
     async def get_or_create_explanation(cls, mission_id: str) -> GemmaExplanationPacket:
         """
         Retrieves an existing cached Gemma explanation, or triggers a fresh generation pipeline.
-        
+
         Args:
             mission_id: The unique alphanumeric active run ID.
-            
+
         Returns:
             GemmaExplanationPacket: Validated explanation packet. Never fails the mission.
         """
@@ -161,7 +161,7 @@ class GemmaIntelligenceService:
 
         # Publish Event: gemma_started
         await event_bus.publish(
-            cls._create_gemma_event(
+            cls._create_gemma_event(    
                 mission_id=mission_id,
                 event_type=EventType.GEMMA_STARTED,
                 title="Gemma Analysis Started",
@@ -284,7 +284,7 @@ class GemmaIntelligenceService:
 
             # Compile fallback packet
             packet = cls._compile_procedural_fallback_packet(mission_id, claim_id, decision_packet)
-            
+
             # Cache the fallback too to prevent repeated API hitting
             await mission_manager.attach_metadata(mission_id, {"gemma_explanation_packet": packet.model_dump()})
 

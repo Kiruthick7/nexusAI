@@ -5,16 +5,16 @@ import { useStore } from "@/store/useStore";
 import { Scale } from "lucide-react";
 
 export function ArbiterCard() {
-  const { getActiveMission, isSimulating, simulationStep, simulationArbiterLogs } = useStore();
+  const { getActiveMission, isSimulating, simulationStep, simulationArbiterLogs, isFreshUpload } = useStore();
   const mission = getActiveMission();
   const arbiter = mission.agents.arbiter;
   const consoleEndRef = useRef<HTMLDivElement>(null);
 
   // Compute active highlight states
-  const isActive = !isSimulating || simulationStep === "ARBITRATING" || simulationStep === "COMPLETED";
+  const isActive = !isFreshUpload && (!isSimulating || simulationStep === "ARBITRATING" || simulationStep === "COMPLETED");
 
   // Compute logs to show: dynamic simulated lines vs. static complete logs
-  const logsToShow = isSimulating ? simulationArbiterLogs : arbiter.logs;
+  const logsToShow = isFreshUpload ? [] : (isSimulating ? simulationArbiterLogs : arbiter.logs);
 
   // Auto-scroll terminal logs to bottom on new append streams
   useEffect(() => {
@@ -51,7 +51,11 @@ export function ArbiterCard() {
 
       {/* Terminal log console */}
       <div className="bg-surface-container p-3 rounded border border-outline-variant/30 font-mono text-[11px] text-on-surface-variant leading-relaxed text-left h-28 shadow-inner select-text overflow-y-auto log-stream">
-        {isActive ? (
+        {isFreshUpload ? (
+          <div className="text-on-surface-variant/40 italic flex items-center justify-center h-full">
+            Awaiting claim receipt to initialize Arbiter...
+          </div>
+        ) : isActive ? (
           logsToShow.map((log, idx) => {
             const isWarn = log.startsWith("!") || log.includes("warning") || log.includes("ambiguity") || log.includes("exceeded");
             const isError = log.includes("Error") || log.includes("conflict") || log.includes("halted");

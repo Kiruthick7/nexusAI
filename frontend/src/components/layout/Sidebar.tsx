@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 export function Sidebar() {
-  const { activeTab, setActiveTab, startSimulation, isSimulating, activeMissionId } = useStore();
+  const { activeTab, setActiveTab, resetToFreshUpload, isSimulating } = useStore();
 
   const navItems = [
     { id: "orchestration", label: "Orchestration", icon: Network },
@@ -43,7 +43,8 @@ export function Sidebar() {
       <nav className="flex-1 flex flex-col gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive =
+            activeTab === item.id || (activeTab === "claims" && item.id === "history");
           return (
             <button
               key={item.id}
@@ -64,30 +65,13 @@ export function Sidebar() {
       {/* Footer / CTA Actions */}
       <div className="mt-auto flex flex-col gap-2">
         <button
-          onClick={() => startSimulation(activeMissionId)}
+          onClick={() => resetToFreshUpload()}
           disabled={isSimulating}
           className="w-full py-2.5 px-4 bg-primary text-on-primary text-xs font-bold rounded-lg hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Plus className="w-4 h-4" />
           {isSimulating ? "Orchestrating..." : "New Analysis"}
         </button>
-
-        <div className="h-px w-full bg-outline-variant/60 my-1"></div>
-
-        <a
-          href="#"
-          className="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant hover:text-on-surface rounded-lg transition-all text-xs font-semibold"
-        >
-          <BookOpen className="w-[18px] h-[18px]" />
-          Documentation
-        </a>
-        <a
-          href="#"
-          className="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-variant hover:text-on-surface rounded-lg transition-all text-xs font-semibold"
-        >
-          <HelpCircle className="w-[18px] h-[18px]" />
-          Support
-        </a>
       </div>
     </aside>
   );

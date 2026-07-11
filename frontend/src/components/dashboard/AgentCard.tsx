@@ -9,12 +9,12 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agentKey }: AgentCardProps) {
-  const { getActiveMission, isSimulating, simulationAgents } = useStore();
+  const { getActiveMission, isSimulating, simulationAgents, isFreshUpload } = useStore();
   const mission = getActiveMission();
   const staticAgent = mission.agents[agentKey];
 
   // Resolve status based on simulation modes
-  const liveStatus = isSimulating ? simulationAgents[agentKey] : staticAgent.status;
+  const liveStatus = isFreshUpload ? "idle" : (isSimulating ? simulationAgents[agentKey] : staticAgent.status);
 
   // Render variables
   let opacity = "opacity-100 scale-100";
@@ -40,11 +40,16 @@ export function AgentCard({ agentKey }: AgentCardProps) {
     badgeColor = "bg-secondary/10 text-secondary border-secondary/20";
     textColor = "text-secondary";
     StatusIcon = CheckCircle2;
-  } else if (liveStatus === "warning" || liveStatus === "pending") {
+  } else if (liveStatus === "warning") {
     borderColor = "border-tertiary/30";
     badgeColor = "bg-tertiary/10 text-tertiary border-tertiary/20";
     textColor = "text-tertiary";
-    StatusIcon = Loader2; // Spinner!
+    StatusIcon = AlertTriangle;
+  } else if (liveStatus === "pending") {
+    borderColor = "border-outline-variant/30";
+    badgeColor = "bg-surface-variant text-on-surface-variant border-outline-variant/40";
+    textColor = "text-on-surface-variant";
+    StatusIcon = Loader2;
   } else if (liveStatus === "error") {
     borderColor = "border-error/50 ring-1 ring-error/30";
     badgeColor = "bg-error/10 text-error border-error/30";
@@ -82,7 +87,7 @@ export function AgentCard({ agentKey }: AgentCardProps) {
       </div>
 
       <div className={`flex items-center gap-1.5 text-xs mt-1 ${textColor} text-left`}>
-        {liveStatus === "loading" || liveStatus === "pending" || (liveStatus === "warning" && agentKey === "policy") ? (
+        {liveStatus === "loading" || liveStatus === "pending" ? (
           <StatusIcon className="w-4 h-4 animate-spin shrink-0" />
         ) : (
           <StatusIcon className="w-4 h-4 shrink-0" />

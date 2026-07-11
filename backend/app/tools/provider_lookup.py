@@ -37,6 +37,14 @@ MOCK_PROVIDER_REGISTRY = [
         "metadata": {"specialty": "Healthcare", "tier": "Enterprise"}
     },
     {
+        "provider_name": "Apollo Clinics",
+        "gstin": "GSTIN-APOLLO-CLINIC",
+        "phone": "2125550198",
+        "provider_id": "PROV-APOLLO-CLINIC",
+        "mcp_endpoint": "http://localhost:8081/mcp",
+        "metadata": {"specialty": "Healthcare", "tier": "Enterprise"}
+    },
+    {
         "provider_name": "DeepMind Corp",
         "gstin": "GST-123456",
         "phone": "1234567890",

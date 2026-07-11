@@ -76,6 +76,37 @@ graph TD
 
 ---
 
+## 🧾 Live Demo Claim Receipts
+
+The repository includes pre-built clinical receipts located in the [assets/](file:///Users/kiruthick/Developer/nexusAI/assets) directory. These are fully prepared for drag-and-drop ingestion testing in the **Live** and **Mock** simulation dashboard:
+
+1. **✅ Valid Claim (`assets/valid_claim.png`)**
+   - **Type**: Clean out-of-network clinical receipt.
+   - **Details**: Issued by *Apollo Clinics* for patient *Kiruthick S.*, dated *September 24, 2026*. It details specialist consultations, standard clinical ECG diagnostics, and pharmacy dispersion totaling **$400.00** (after adjustments).
+   - **Topological Flow**: Evaluates clean registry status ➔ executes standard coverage checks ➔ passes audit checks ➔ completes auto-approval guidelines.
+
+2. **⚠️ Invalid Claim (`assets/Invalid_claim.png`)**
+   - **Type**: Generic non-cohesive nature image.
+   - **Details**: A scenic landscape image containing no textual elements, structured metadata, or clinic headers.
+   - **Topological Flow**: The *Intake Agent* performs OCR/vision processing ➔ fails to identify logical receipt bounds or structures ➔ triggers immediate safety/compliance flags ➔ escalates cleanly to the **Human Intervention Queue** to safeguard pipeline operational integrity.
+
+---
+
+## 🎮 How to Run Mock Demo Simulations
+
+To guarantee a bulletproof, high-fidelity presentation flow during live pitch decks or in offline environments, the Nexus AI frontend comes pre-packaged with a local **Mock Simulation Engine**:
+
+1. **Toggle Mock Mode**: At the top right of the navigation header, you will see a mode switcher. Click the **"Mock Simulation"** button. This will switch the workspace context state and display an `ENV: MOCK` status badge.
+2. **Select or Upload any File**: Under the central drop-zone panel, drag-and-drop any mock image, or simply click inside the box to trigger ingestion.
+3. **High-Fidelity Pipeline Execution**:
+   - The dashboard will immediately launch a full **asynchronous timeline simulation**.
+   - You will see the progress indicators tick upward sequentially as the **Planner Agent**, **Provider Agent**, **Policy Agent**, and **Pattern Agent** output their findings in real-time.
+   - The *Arbiter Decision Engine* card will update dynamically, rendering live reasoning logs, consensus weights, and conflict resolution indicators.
+   - If a manual review is triggered (as in the case of out-of-network conflicts), the **Human Intervention Queue** will activate, rendering reviewer questionnaires and allowing you to click approve/deny directly to see immediate state reactions.
+4. **Seamless Transition back to Live Server**: To switch to live parsing, simply toggle the header switch back to **"Live Server"** (showing `ENV: LIVE`). All file ingestion will now trigger real-time Gemini processing and Server-Sent Event streams!
+
+---
+
 ## 🛠️ Technology Stack
 
 ### Backend
@@ -92,8 +123,8 @@ graph TD
 - **Transitions**: Framer Motion & Lucide Icons
 
 ### Infrastructure & Deployment
-- **Deployment target**: Google Cloud Run (Containerized server)
-- **Database**: Cloud SQL PostgreSQL & BigQuery
+- **Deployment target**: Google Cloud Run (Fully Serverless Container Orchestration)
+- **Database**: Cloud SQL PostgreSQL & BigQuery (Offline simulation analytics)
 - **Storage**: Cloud Storage (GCS)
 - **Containment**: Docker Multi-stage builds & Docker Compose
 
@@ -193,7 +224,67 @@ Open [http://localhost:3000](http://localhost:3000) inside your browser.
 
 ---
 
-### 🧪 Verifying Systems Health
+## 🌐 Production Deployment Steps
+
+### 1. ⚙️ Deploy Backend to Google Cloud Run
+The Nexus AI FastAPI backend service can be easily compiled, packaged, and scaled on GCP Cloud Run. We provide an automated build script for this inside `backend/scripts/`:
+
+1. Authenticate with Google Cloud SDK:
+   ```bash
+   gcloud auth login
+   gcloud config set project your-gcp-project-id
+   ```
+2. Enable the required GCP cloud services:
+   ```bash
+   gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com
+   ```
+3. Run the automated deployment helper:
+   ```bash
+   cd backend
+   chmod +x scripts/deploy_cloud_run.sh
+   ./scripts/deploy_cloud_run.sh
+   ```
+4. Capture the deployed **Service URL** output at the end (e.g. `https://nexus-backend-hash-uc.a.run.app`).
+
+### 2. ⚡ Deploy Frontend to Google Cloud Run
+The Next.js frontend is fully containerized and deployed serverlessly to **Google Cloud Run**, passing the live backend service endpoint as a build argument so it gets baked directly into the static client bundles.
+
+1. Build the frontend docker image for `linux/amd64` architecture, passing the active backend URL as a build-time argument:
+   ```bash
+   cd frontend
+   docker build --platform linux/amd64 \
+     --build-arg NEXT_PUBLIC_API_URL="https://nexus-backend-311963508157.asia-south1.run.app" \
+     -t gcr.io/deepmind-hack26blr-4071/nexus-frontend:latest .
+   ```
+2. Push the compiled image to your Google Container Registry:
+   ```bash
+   docker push gcr.io/deepmind-hack26blr-4071/nexus-frontend:latest
+   ```
+3. Deploy the frontend container to Cloud Run:
+   ```bash
+   gcloud run deploy nexus-frontend \
+       --image gcr.io/deepmind-hack26blr-4071/nexus-frontend:latest \
+       --region asia-south1 \
+       --platform managed \
+       --allow-unauthenticated \
+       --memory 1Gi \
+       --cpu 1 \
+       --timeout 300 \
+       --concurrency 80
+   ```
+4. Once deployed, Cloud Run will output your live frontend service URL (e.g. `https://nexus-frontend-311963508157.asia-south1.run.app`).
+
+### 3. 🛡️ Secure CORS Alignment on the Backend
+To configure strict, secure origin filtering:
+- Re-deploy your backend Cloud Run instance, adding the `ALLOWED_ORIGINS` environment variable pointing specifically to your new frontend URL:
+  ```bash
+  --set-env-vars="ALLOWED_ORIGINS=https://nexus-frontend-311963508157.asia-south1.run.app"
+  ```
+  This immediately locks down the FastAPI gateway to only process trusted requests originating from your production dashboard!
+
+---
+
+## 🧪 Verifying Systems Health
 Run the automated test suites using `pytest` inside the backend directory:
 ```bash
 cd backend

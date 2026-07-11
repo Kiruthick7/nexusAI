@@ -22,7 +22,7 @@ echo -e "======================================================================$
 
 # 1. Resolve configuration parameters
 GCP_PROJECT_ID=$(gcloud config get-value project 2>/dev/null || echo "nexus-ai-orchestration")
-REGION="us-central1"
+REGION=$(gcloud config get-value run/region 2>/dev/null || echo "asia-south1")
 SERVICE_NAME="nexus-backend"
 IMAGE_TAG="gcr.io/${GCP_PROJECT_ID}/${SERVICE_NAME}:latest"
 

@@ -5,13 +5,13 @@ import { useStore } from "@/store/useStore";
 import { Bot } from "lucide-react";
 
 export function PlannerCard() {
-  const { getActiveMission, isSimulating, simulationStep } = useStore();
+  const { getActiveMission, isSimulating, simulationStep, isFreshUpload } = useStore();
   const mission = getActiveMission();
   const planner = mission.agents.planner;
 
   // Compute active highlight states
-  const isActive = !isSimulating || simulationStep !== "INGESTING";
-  const isPulse = isSimulating && simulationStep === "PLANNING";
+  const isActive = !isFreshUpload && (!isSimulating || simulationStep !== "INGESTING");
+  const isPulse = !isFreshUpload && isSimulating && simulationStep === "PLANNING";
 
   return (
     <div

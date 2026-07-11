@@ -11,7 +11,7 @@ from app.policy.rules import PolicyRuleConfig
 
 # Path to standard policies configuration
 POLICY_FILE_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../policies/company_policy.yaml")
+    os.path.join(os.path.dirname(__file__), "../../policies/company_policy.yaml")
 )
 
 # Robust fallback controls if disk loader fails
@@ -57,6 +57,41 @@ DEFAULT_POLICIES: Dict[str, Dict[str, Any]] = {
         "allowed_currencies": ["INR", "USD"],
         "required_fields": ["vendor_name", "date", "amount"],
         "approval_threshold": 4000.0,
+    },
+    "Medical": {
+        "max_amount": 10000.0,
+        "receipt_required": True,
+        "allowed_currencies": ["INR", "USD"],
+        "required_fields": ["vendor_name", "date", "amount"],
+        "approval_threshold": 8000.0,
+    },
+    "Specialist Consultation": {
+        "max_amount": 10000.0,
+        "receipt_required": True,
+        "allowed_currencies": ["INR", "USD"],
+        "required_fields": ["vendor_name", "date", "amount"],
+        "approval_threshold": 8000.0,
+    },
+    "Medical/Health": {
+        "max_amount": 10000.0,
+        "receipt_required": True,
+        "allowed_currencies": ["INR", "USD"],
+        "required_fields": ["vendor_name", "date", "amount"],
+        "approval_threshold": 8000.0,
+    },
+    "Medical Care": {
+        "max_amount": 10000.0,
+        "receipt_required": True,
+        "allowed_currencies": ["INR", "USD"],
+        "required_fields": ["vendor_name", "date", "amount"],
+        "approval_threshold": 8000.0,
+    },
+    "Health Care": {
+        "max_amount": 10000.0,
+        "receipt_required": True,
+        "allowed_currencies": ["INR", "USD"],
+        "required_fields": ["vendor_name", "date", "amount"],
+        "approval_threshold": 8000.0,
     },
 }
 

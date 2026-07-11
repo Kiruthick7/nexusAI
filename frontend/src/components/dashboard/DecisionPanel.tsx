@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useStore } from "@/store/useStore";
-import { Ban, AlertCircle, Play, Pause, Loader2, Sparkles } from "lucide-react";
+import { Ban, AlertCircle, Play, Pause, Loader2, Sparkles, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function DecisionPanel() {
@@ -13,10 +13,12 @@ export function DecisionPanel() {
     voiceProgress,
     isSimulating,
     simulationStep,
+    isFreshUpload,
+    overrideMissionStatus,
   } = useStore();
   const mission = getActiveMission();
 
-  const isCompleted = !isSimulating || simulationStep === "COMPLETED";
+  const isCompleted = !isFreshUpload && (!isSimulating || simulationStep === "COMPLETED");
 
   // Create mock voice waveforms bar heights
   const bars = [8, 12, 16, 24, 18, 10, 14, 20, 12, 8, 14, 22, 16, 10];
@@ -24,7 +26,66 @@ export function DecisionPanel() {
   return (
     <div className="flex-1 min-w-[280px] max-w-sm flex flex-col gap-4 h-full overflow-y-auto log-stream pl-2">
       <AnimatePresence mode="wait">
-        {isCompleted ? (
+        {isFreshUpload ? (
+          <motion.div
+            key="fresh"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="flex flex-col gap-4"
+          >
+            {/* Pending Adjudication Decision Banner */}
+            <div className="glass-panel rounded-lg border-2 border-outline-variant/40 p-5 relative overflow-hidden bg-surface-container-low/30 shadow-sm text-left select-none">
+              <div className="absolute top-0 left-0 w-1 h-full bg-outline-variant/60"></div>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full border border-outline-variant/50 bg-surface-container mt-0.5 shrink-0 text-on-surface-variant/40">
+                  <Sparkles className="w-5 h-5 animate-pulse text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight mb-1 text-on-surface/60">
+                    Decision Pending
+                  </h2>
+                  <div className="inline-block px-1.5 py-0.5 border border-outline-variant/40 bg-surface-container-high rounded text-[9px] font-mono font-bold tracking-wider uppercase text-on-surface-variant/60">
+                    AWAITING UPLOAD
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-on-surface-variant/60 mt-4 leading-relaxed border-t border-outline-variant/30 pt-3 text-left">
+                The final claim decision, agent arbitration, and run metrics will compile in real time once your receipt is uploaded.
+              </p>
+            </div>
+
+            {/* Run Metrics Placeholder */}
+            <div className="glass-panel rounded-lg p-4 flex flex-col gap-3 opacity-60 select-none">
+              <div className="flex justify-between items-center border-b border-outline-variant/60 pb-2">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                  Run Metrics
+                </span>
+                <span className="font-mono text-xs text-on-surface-variant/40">NEX-xxxx</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-left">
+                <div className="bg-surface-container-lowest p-2 rounded border border-outline-variant/30 flex flex-col">
+                  <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">
+                    Duration
+                  </span>
+                  <span className="font-mono text-sm font-semibold text-on-surface-variant/30 mt-0.5">
+                    --
+                  </span>
+                </div>
+                <div className="bg-surface-container-lowest p-2 rounded border border-outline-variant/30 flex flex-col">
+                  <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">
+                    Agents Used
+                  </span>
+                  <span className="font-mono text-sm font-semibold text-on-surface-variant/30 mt-0.5">
+                    --
+                  </span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ) : isCompleted ? (
           <motion.div
             key="resolved"
             initial={{ opacity: 0, y: 15 }}
@@ -38,24 +99,46 @@ export function DecisionPanel() {
               className={`glass-panel rounded-lg border-2 p-5 relative overflow-hidden shadow-sm transition-all duration-300 ${
                 mission.status === "REJECTED"
                   ? "border-error/40 bg-error-container/10 shadow-[0_0_20px_rgba(147,0,10,0.1)]"
+                  : mission.status === "APPROVED"
+                  ? "border-secondary/40 bg-secondary-container/10 shadow-[0_0_20px_rgba(117,219,148,0.15)]"
                   : "border-tertiary/40 bg-tertiary-container/10 shadow-[0_0_20px_rgba(255,183,126,0.1)]"
               }`}
             >
-              <div className={`absolute top-0 left-0 w-1 h-full ${mission.status === "REJECTED" ? "bg-error" : "bg-tertiary"}`}></div>
+              <div
+                className={`absolute top-0 left-0 w-1 h-full ${
+                  mission.status === "REJECTED"
+                    ? "bg-error"
+                    : mission.status === "APPROVED"
+                    ? "bg-secondary"
+                    : "bg-tertiary"
+                }`}
+              ></div>
               <div className="flex items-start gap-3">
                 <div
                   className={`p-2 rounded-full border mt-0.5 shrink-0 ${
                     mission.status === "REJECTED"
                       ? "bg-error/15 border-error/30 text-error"
+                      : mission.status === "APPROVED"
+                      ? "bg-secondary/15 border-secondary/30 text-secondary"
                       : "bg-tertiary/15 border-tertiary/30 text-tertiary"
                   }`}
                 >
-                  {mission.status === "REJECTED" ? <Ban className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                  {mission.status === "REJECTED" ? (
+                    <Ban className="w-5 h-5" />
+                  ) : mission.status === "APPROVED" ? (
+                    <ShieldCheck className="w-5 h-5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5" />
+                  )}
                 </div>
                 <div className="text-left">
                   <h2
                     className={`text-2xl font-bold tracking-tight mb-0.5 ${
-                      mission.status === "REJECTED" ? "text-error" : "text-tertiary"
+                      mission.status === "REJECTED"
+                        ? "text-error"
+                        : mission.status === "APPROVED"
+                        ? "text-secondary"
+                        : "text-tertiary"
                     }`}
                   >
                     {mission.status}
@@ -64,6 +147,8 @@ export function DecisionPanel() {
                     className={`inline-block px-1.5 py-0.5 border rounded text-[9px] font-mono font-bold tracking-wider uppercase ${
                       mission.status === "REJECTED"
                         ? "bg-error/10 border-error/30 text-error"
+                        : mission.status === "APPROVED"
+                        ? "bg-secondary/10 border-secondary/30 text-secondary"
                         : "bg-tertiary/10 border-tertiary/30 text-tertiary"
                     }`}
                   >
@@ -74,9 +159,28 @@ export function DecisionPanel() {
 
               <p className="text-xs text-on-surface-variant mt-4 leading-relaxed border-t border-outline-variant/30 pt-3 text-left">
                 {mission.status === "REJECTED"
-                  ? "Potential duplicate submission detected within 30-day window. Invoice highly similar to NEX-8102 previously approved on Sep 14."
-                  : "Claim requires manual review due to unresolvable policy conflict regarding out-of-network coverage."}
+                  ? "Potential duplicate submission detected within 30-day window. Invoice highly similar to previous approval."
+                  : mission.status === "APPROVED"
+                  ? "Claim approved. Specialist checks verified provider registry database, guidelines, and historical patterns without anomalies."
+                  : "Claim requires manual review due to verification warnings or spend limit warning thresholds."}
               </p>
+
+              {mission.status === "ESCALATED" && (
+                <div className="flex gap-2 mt-4 pt-3 border-t border-outline-variant/20">
+                  <button
+                    onClick={() => overrideMissionStatus(mission.id, "APPROVED")}
+                    className="flex-1 h-8 rounded bg-secondary/15 hover:bg-secondary/25 border border-secondary/30 text-secondary text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer select-none active:scale-95"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" /> Approve Claim
+                  </button>
+                  <button
+                    onClick={() => overrideMissionStatus(mission.id, "REJECTED")}
+                    className="flex-1 h-8 rounded bg-error/15 hover:bg-error/25 border border-error/30 text-error text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer select-none active:scale-95"
+                  >
+                    <Ban className="w-3.5 h-3.5" /> Reject Claim
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Mission Metadata Details */}
