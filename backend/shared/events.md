@@ -1,7 +1,7 @@
 # 🌐 Server-Sent Events (SSE) Event Contracts
 ### *Single Source of Truth for Frontend-Backend Communication*
 
-This document defines the strict event schema, lifecycles, and payload contracts for Server-Sent Events (SSE) streaming communication between the **Nexus AI Operations Platform** backend and frontend.
+This document defines the strict, unified event schema, lifecycles, and payload contracts for Server-Sent Events (SSE) streaming communication between the **Nexus AI Operations Platform** backend and frontend.
 
 ---
 
@@ -42,10 +42,7 @@ All SSE packets must comply with the HTML5 event-stream standard. Messages are s
 
 ```http
 event: message
-data: {"event_id": "893fa912-429a-4c22-9214-e0c406cb46f0", "event_type": "workflow_started", "timestamp": "2026-07-11T12:00:00Z", "mission_id": "RUN-9012", "step": "INGESTING", "severity": "INFO", "payload": {}}
-
-event: message
-data: {"event_id": "ab82cc1d-91aa-4621-8311-bf10cbbd1421", "event_type": "intake_started", "timestamp": "2026-07-11T12:00:01.250Z", "mission_id": "RUN-9012", "step": "INGESTING", "severity": "INFO", "payload": {"file_name": "med_invoice_41.pdf", "file_size": "1.4 MB"}}
+data: {"event_id": "893fa912-429a-4c22-9214-e0c406cb46f0", "mission_id": "RUN-9012", "event_type": "workflow_started", "agent": null, "status": null, "title": "Workflow Initialized", "message": "Nexus AI Operations Platform orchestration session initialized", "severity": "INFO", "confidence": null, "latency_ms": 120, "tools_used": [], "timestamp": "2026-07-11T12:00:00Z", "metadata": {}}
 ```
 
 ---
@@ -59,7 +56,7 @@ data: {"event_id": "ab82cc1d-91aa-4621-8311-bf10cbbd1421", "event_type": "intake
 - `PatternAgent`: Runs fraud audits, duplicates scanner, and historic pattern matching.
 - `ArbiterAgent`: Resolves boundary unresolvable conflicts and compiles the terminal logs.
 
-### B. Status Strings
+### B. Agent/Workflow Statuses
 - `idle`: Awaiting processing triggers.
 - `loading`: Active processing/analyzing.
 - `success`: Cleared, validated, or verified without flags.
@@ -77,19 +74,23 @@ data: {"event_id": "ab82cc1d-91aa-4621-8311-bf10cbbd1421", "event_type": "intake
 
 ## 📝 4. Canonical JSON Event Schema
 
-Every event dispatched over the SSE stream **must** conform to the following unified, canonical JSON Schema:
+Every single event dispatched over the SSE stream **must** conform to the following unified, canonical JSON Schema:
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "NexusAIEvent",
-  "description": "Unified event contract representable for any real-time SSE packet.",
+  "description": "Unified flat event contract representing any real-time SSE packet.",
   "type": "object",
   "properties": {
     "event_id": {
       "type": "string",
       "format": "uuid",
       "description": "Unique UUID matching this specific event packet."
+    },
+    "mission_id": {
+      "type": "string",
+      "description": "Unique alphanumeric tracking run ID (e.g., RUN-4012)."
     },
     "event_type": {
       "type": "string",
@@ -115,57 +116,69 @@ Every event dispatched over the SSE stream **must** conform to the following uni
       ],
       "description": "The specific event checkpoint label."
     },
-    "timestamp": {
-      "type": "string",
-      "format": "date-time",
-      "description": "ISO 8601 formatted datetime UTC stamp."
+    "agent": {
+      "type": ["string", "null"],
+      "enum": ["PlannerAgent", "ProviderAgent", "PolicyAgent", "PatternAgent", "ArbiterAgent", null],
+      "description": "The executing agent name."
     },
-    "mission_id": {
-      "type": "string",
-      "description": "Unique alphanumeric tracking run ID (e.g., RUN-4012)."
+    "status": {
+      "type": ["string", "null"],
+      "enum": ["idle", "loading", "success", "warning", "pending", "error", null],
+      "description": "Active execution status of the agent."
     },
-    "step": {
+    "title": {
       "type": "string",
-      "enum": ["IDLE", "INGESTING", "PLANNING", "ANALYZING", "ARBITRATING", "COMPLETED"],
-      "description": "The active mission lifecycle phase."
+      "description": "Short heading label of the event checkpoint."
+    },
+    "message": {
+      "type": "string",
+      "description": "Verbose log or message description."
     },
     "severity": {
       "type": "string",
       "enum": ["INFO", "SUCCESS", "WARN", "ERROR"],
       "description": "Log severity mapping."
     },
-    "payload": {
+    "confidence": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percentage representing AI accuracy confidence if applicable."
+    },
+    "latency_ms": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Execution latency metric."
+    },
+    "tools_used": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of platform tools executed."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 formatted datetime UTC stamp."
+    },
+    "metadata": {
       "type": "object",
-      "description": "Event-specific parameter data. Refer to section 5 for event payload sub-contracts."
+      "description": "Custom dictionary holding additional contextual event fields."
     }
   },
-  "required": ["event_id", "event_type", "timestamp", "mission_id", "step", "severity", "payload"]
+  "required": [
+    "event_id",
+    "mission_id",
+    "event_type",
+    "agent",
+    "status",
+    "title",
+    "message",
+    "severity",
+    "confidence",
+    "latency_ms",
+    "tools_used",
+    "timestamp",
+    "metadata"
+  ]
 }
 ```
-
----
-
-## 📦 5. Specific Event Payload Sub-Contracts
-
-While the structural envelope is unified, the `payload` dict structure adjusts depending on the `event_type`:
-
-| Event Type | Step | Severity | Payload Schema Description / Fields |
-| :--- | :--- | :--- | :--- |
-| **`workflow_started`** | `INGESTING` | `INFO` | `{}` *Empty payload initializing workspace* |
-| **`intake_started`** | `INGESTING` | `INFO` | `{"file_name": "invoice.pdf", "file_size": "1.2 MB"}` |
-| **`extraction_completed`** | `INGESTING` | `SUCCESS` | `{"vendor_name": "Apollo Clinic", "gstin": "29AAAAA1111A1Z1", "category": "Medical", "extracted_confidence": 98}` |
-| **`planner_started`** | `PLANNING` | `INFO` | `{"planner_name": "NexusPlanner v2"}` |
-| **`planner_dispatch`** | `PLANNING` | `INFO` | `{"dispatched_agents": ["ProviderAgent", "PolicyAgent", "PatternAgent"]}` |
-| **`provider_started`** | `ANALYZING` | `INFO` | `{}` *Initializing parallel provider checks* |
-| **`provider_completed`** | `ANALYZING` | `SUCCESS` | `{"status": "success", "confidence": 96, "message": "Credentials verified"}` |
-| **`policy_started`** | `ANALYZING` | `INFO` | `{}` *Initializing parallel policy audits* |
-| **`policy_completed`** | `ANALYZING` | `WARN` / `SUCCESS` | `{"status": "warning", "confidence": 92, "message": "Out of network clinic flagged"}` |
-| **`pattern_started`** | `ANALYZING` | `INFO` | `{}` *Initializing pattern duplicate scans* |
-| **`pattern_completed`** | `ANALYZING` | `ERROR` / `SUCCESS` | `{"status": "error", "confidence": 99, "message": "Potential duplicate matching NEX-8102"}` |
-| **`conflict_detected`** | `ARBITRATING` | `WARN` | `{"conflicts": ["Duplicate claim found", "Out of network provider"]}` |
-| **`arbiter_started`** | `ARBITRATING` | `INFO` | `{"arbiter_name": "ArbiterAgent"}` |
-| **`arbiter_completed`** | `ARBITRATING` | `SUCCESS` | `{"decision": "REJECTED", "logs": ["> Ingesting records...", "! Warning detected..."]}` |
-| **`gate_check`** | `ARBITRATING` | `INFO` | `{"gate_name": "AdjudicationLimitGate", "cleared": true}` |
-| **`human_required`** | `ARBITRATING` | `WARN` | `{"reason": "Policy conflict requires manual human overrides"}` |
-| **`decision`** | `COMPLETED` | `ERROR` / `SUCCESS` | `{"status": "REJECTED", "subtext": "DUPLICATE FOUND", "duration": "1.2s", "agents_used": 5}` |
-| **`workflow_completed`** | `COMPLETED` | `SUCCESS` | `{}` *Workflow complete closure packet* |
