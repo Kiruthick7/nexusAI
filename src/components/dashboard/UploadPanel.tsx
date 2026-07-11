@@ -74,6 +74,7 @@ export function UploadPanel() {
         <AnimatePresence mode="popLayout">
           {showVendor && (
             <motion.div
+              key="vendor"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -91,6 +92,7 @@ export function UploadPanel() {
 
           {showId && (
             <motion.div
+              key="memberId"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -112,6 +114,7 @@ export function UploadPanel() {
 
           {showCategory && (
             <motion.div
+              key="category"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -133,6 +136,7 @@ export function UploadPanel() {
       <AnimatePresence>
         {showChecks && (
           <motion.div
+            key="checklist"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
