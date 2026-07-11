@@ -7,8 +7,8 @@ and triggering high-fidelity mock playback scenarios.
 
 import asyncio
 import random
-from typing import Dict, Any, Generator
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from typing import Dict, Any, Generator, Optional
+from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
@@ -17,6 +17,8 @@ from app.core.mission_manager import mission_manager
 from app.core.event_bus import event_bus
 from app.core.event_publisher import publish_workflow_started
 from app.services.mock_playback import run_playback_scenario
+from app.services.intake_agent import run_intake_agent
+from app.workflow.planner import run_planner_agent
 
 
 app = FastAPI(
@@ -75,10 +77,37 @@ def read_health() -> Dict[str, Any]:
     }
 
 
+async def run_orchestration_workflow(mission_id: str, claim_id: str, file_bytes: bytes, filename: str) -> None:
+    """
+    Unified background workflow execution loop chaining the Intake Agent and Planner Agent sequentially.
+    """
+    try:
+        # Step 1: Execute Intake Agent OCR Extraction
+        context = await run_intake_agent(
+            mission_id=mission_id,
+            claim_id=claim_id,
+            file_bytes=file_bytes,
+            filename=filename
+        )
+        
+        # Step 2: Execute Planner Agent Orchestration
+        await run_planner_agent(
+            mission_id=mission_id,
+            claim_id=claim_id,
+            context=context
+        )
+    except Exception as e:
+        logger.error(f"[ORCHESTRATOR] Critical execution failure in workflow loop: {e}", exc_info=True)
+
+
 @app.post("/claims", status_code=201)
-async def create_claim() -> Dict[str, str]:
+async def create_claim(
+    background_tasks: BackgroundTasks,
+    file: Optional[UploadFile] = None
+) -> Dict[str, str]:
     """
     Creates a new adjudication Mission, generating tracking IDs and initializing states.
+    Dispatches the orchestration workflow task to run both Intake and Planner agents in the background.
     """
     # Generate sequential or randomized alphanumeric tracking identifiers
     num = random.randint(1000, 9999)
@@ -95,7 +124,24 @@ async def create_claim() -> Dict[str, str]:
         message=f"Platform orchestration initialized for Claim {claim_id}"
     )
     
-    logger.info(f"[API] Initialized claim for mission_id={mission_id}")
+    # Read file bytes and run Intake Agent in background
+    if file:
+        file_bytes = await file.read()
+        filename = file.filename or "invoice.png"
+    else:
+        # Fallback empty bytes and default name if none uploaded
+        file_bytes = b""
+        filename = "invoice.png"
+        
+    background_tasks.add_task(
+        run_orchestration_workflow,
+        mission_id=mission_id,
+        claim_id=claim_id,
+        file_bytes=file_bytes,
+        filename=filename
+    )
+    
+    logger.info(f"[API] Initialized claim and dispatched orchestration workflow for mission_id={mission_id}")
     return {
         "mission_id": mission_id,
         "claim_id": claim_id
@@ -103,14 +149,14 @@ async def create_claim() -> Dict[str, str]:
 
 
 @app.get("/claims/{mission_id}/events")
-async def stream_events(mission_id: str) -> StreamingResponse:
+async def stream_events(mission_id: str, stream: bool = True) -> StreamingResponse:
     """
     Exposes a real-time Server-Sent Events (SSE) streaming pipeline for a specific mission.
     
     Supports:
-        - Multi-client subscription.
-        - Historical event catchup replay upon connection/reconnect.
-        - Clean client disconnection cleanup.
+    - Multi-client subscription.
+    - Historical event catchup replay upon connection/reconnect.
+    - Clean client disconnection cleanup.
     """
     mission = await mission_manager.get_mission(mission_id)
     if not mission:
@@ -133,10 +179,11 @@ async def stream_events(mission_id: str) -> StreamingResponse:
                 yield f"event: message\ndata: {old_event.model_dump_json()}\n\n"
                 
             # 2. Infinite loop awaiting real-time events published to the queue
-            while True:
-                new_event = await queue.get()
-                yield f"event: message\ndata: {new_event.model_dump_json()}\n\n"
-                queue.task_done()
+            if stream:
+                while True:
+                    new_event = await queue.get()
+                    yield f"event: message\ndata: {new_event.model_dump_json()}\n\n"
+                    queue.task_done()
                 
         except asyncio.CancelledError:
             logger.info(f"[SSE] Client subscription cancelled for mission_id={mission_id}")

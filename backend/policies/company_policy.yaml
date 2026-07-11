@@ -1,0 +1,44 @@
+# Corporate reimbursement guidelines and threshold controls
+# Evaluated topologically per-lane by the automated Rule Engine.
+
+Travel:
+  max_amount: 20000.0
+  receipt_required: true
+  allowed_currencies: ["INR", "USD", "EUR"]
+  required_fields: ["vendor_name", "date", "amount", "invoice_number"]
+  approval_threshold: 15000.0
+
+Accommodation:
+  max_amount: 25000.0
+  receipt_required: true
+  allowed_currencies: ["INR", "USD", "EUR"]
+  required_fields: ["vendor_name", "date", "amount", "invoice_number"]
+  approval_threshold: 20000.0
+
+Meals:
+  max_amount: 2500.0
+  receipt_required: true
+  allowed_currencies: ["INR", "USD"]
+  required_fields: ["vendor_name", "date", "amount"]
+  approval_threshold: 2000.0
+
+Client Entertainment:
+  max_amount: 10000.0
+  receipt_required: true
+  allowed_currencies: ["INR", "USD"]
+  required_fields: ["vendor_name", "date", "amount"]
+  approval_threshold: 8000.0
+
+Cab:
+  max_amount: 1500.0
+  receipt_required: false
+  allowed_currencies: ["INR", "USD"]
+  required_fields: ["vendor_name", "date", "amount"]
+  approval_threshold: 1000.0
+
+Office Supplies:
+  max_amount: 5000.0
+  receipt_required: true
+  allowed_currencies: ["INR", "USD"]
+  required_fields: ["vendor_name", "date", "amount"]
+  approval_threshold: 4000.0

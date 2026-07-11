@@ -74,8 +74,8 @@ def test_sse_stream_delivery() -> None:
     res = client.post("/claims")
     mission_id = res.json()["mission_id"]
     
-    # 2. Query SSE stream and read initial yielded catch-up replay lines
-    response = client.get(f"/claims/{mission_id}/events")
+    # 2. Query SSE stream with stream=false to get historical replay and exit immediately
+    response = client.get(f"/claims/{mission_id}/events?stream=false")
     assert response.status_code == 200
     assert "text/event-stream" in response.headers["content-type"]
     

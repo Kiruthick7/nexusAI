@@ -9,6 +9,8 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Dict, Optional, Any
 from app.models.mission import Mission
+from app.models.mission_context import SharedMissionContext
+from app.models.execution_plan import ExecutionPlan
 from app.models.enums import WorkflowStatus
 from app.core.logger import logger
 
@@ -19,6 +21,8 @@ class MissionManager:
     """
     def __init__(self) -> None:
         self._missions: Dict[str, Mission] = {}
+        self._contexts: Dict[str, SharedMissionContext] = {}
+        self._plans: Dict[str, ExecutionPlan] = {}
         self._lock = asyncio.Lock()
 
     async def create_mission(self, mission_id: str, claim_id: str, metadata: Optional[Dict[str, Any]] = None) -> Mission:
@@ -99,7 +103,41 @@ class MissionManager:
         async with self._lock:
             if mission_id in self._missions:
                 del self._missions[mission_id]
+                if mission_id in self._contexts:
+                    del self._contexts[mission_id]
+                if mission_id in self._plans:
+                    del self._plans[mission_id]
                 logger.debug(f"[MISSION MANAGER] Deregistered mission_id={mission_id}")
+
+    async def store_context(self, mission_id: str, context: SharedMissionContext) -> None:
+        """
+        Registers the SharedMissionContext representing extracted data for an active mission.
+        """
+        async with self._lock:
+            self._contexts[mission_id] = context
+            logger.info(f"[MISSION MANAGER] Registered SharedMissionContext for mission_id={mission_id}")
+
+    async def get_context(self, mission_id: str) -> Optional[SharedMissionContext]:
+        """
+        Retrieves the registered SharedMissionContext for an active mission.
+        """
+        async with self._lock:
+            return self._contexts.get(mission_id)
+
+    async def store_plan(self, mission_id: str, plan: ExecutionPlan) -> None:
+        """
+        Registers the compiled ExecutionPlan for an active mission.
+        """
+        async with self._lock:
+            self._plans[mission_id] = plan
+            logger.info(f"[MISSION MANAGER] Registered ExecutionPlan for mission_id={mission_id}")
+
+    async def get_plan(self, mission_id: str) -> Optional[ExecutionPlan]:
+        """
+        Retrieves the registered ExecutionPlan for an active mission.
+        """
+        async with self._lock:
+            return self._plans.get(mission_id)
 
 
 # Instantiate a global singleton Mission Manager

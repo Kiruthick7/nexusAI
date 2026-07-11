@@ -22,14 +22,17 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     MODEL_NAME: Optional[str] = None
     MODEL_NAME_TTS: Optional[str] = None
+    GEMMA_MODEL: Optional[str] = "gemma2-27b-it"
     
     # Google Cloud Platform (GCP) configurations
     GCP_PROJECT_ID: Optional[str] = None
     BQ_DATASET: Optional[str] = None
     GCS_BUCKET: Optional[str] = None
     
-    # Neon Serverless PostgreSQL url
-    NEON_DATABASE_URL: Optional[str] = None
+    # Hugging Face endpoint / local model override
+    HF_API_KEY: Optional[str] = None
+    HF_ENDPOINT: Optional[str] = None
+    LOCAL_MODEL: Optional[str] = "gemma-4-e4b"
 
     # Load from system environment and optional .env files
     model_config = SettingsConfigDict(
