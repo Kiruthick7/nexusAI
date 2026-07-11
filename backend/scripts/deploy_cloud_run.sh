@@ -48,7 +48,7 @@ gcloud run deploy "${SERVICE_NAME}" \
     --cpu 2 \
     --timeout 300 \
     --concurrency 80 \
-    --set-env-vars="DEMO_MODE=true,PORT=8080"
+    --set-env-vars="DEMO_MODE=true"
 
 echo -e "\n${GREEN}${BOLD}✔ Deployment complete!${NC}"
 echo -e "Your service has been deployed successfully."
