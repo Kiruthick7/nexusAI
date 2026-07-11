@@ -298,6 +298,22 @@ async def run_orchestration_workflow(mission_id: str, claim_id: str, file_bytes:
         await event_bus.publish(rejection_event)
     except Exception as e:
         logger.error(f"[ORCHESTRATOR] Critical execution failure in workflow loop: {e}", exc_info=True)
+        from app.models.enums import WorkflowStatus, EventType, AgentName, AgentStatus, Severity
+        from app.core.event_publisher import _create_base_event
+        
+        await mission_manager.update_workflow_status(mission_id, WorkflowStatus.FAILED)
+        await mission_manager.update_stage(mission_id, "FAILED")
+        
+        failure_event = _create_base_event(
+            mission_id=mission_id,
+            event_type=EventType.WORKFLOW_COMPLETED,
+            agent=AgentName.PLANNER,
+            status=AgentStatus.ERROR,
+            title="Orchestration Failed",
+            message=f"Critical orchestrator crash: {str(e)}",
+            severity=Severity.ERROR,
+        )
+        await event_bus.publish(failure_event)
 
 
 @app.post("/claims", status_code=201)

@@ -452,12 +452,24 @@ export const useStore = create<AppState>((set, get) => ({
 
           // Append log to general timeline audit trail
           if (title && eventType !== "field_extracted") {
-            set((state) => ({
-              simulationAuditTrail: [
-                ...state.simulationAuditTrail,
-                { time: eventTime, title: title + (message ? `: ${message}` : ""), status: mapSeverity(severity) }
-              ]
-            }));
+            set((state) => {
+              const newLog = {
+                time: eventTime,
+                title: title + (message ? `: ${message}` : ""),
+                status: mapSeverity(severity) as "success" | "warning" | "error" | "info"
+              };
+              const updatedTrail = [...state.simulationAuditTrail, newLog];
+              if (state.liveMission) {
+                return {
+                  simulationAuditTrail: updatedTrail,
+                  liveMission: {
+                    ...state.liveMission,
+                    auditTrail: [...state.liveMission.auditTrail, newLog]
+                  }
+                };
+              }
+              return { simulationAuditTrail: updatedTrail };
+            });
           }
 
           // Handle specific event checkpoint triggers

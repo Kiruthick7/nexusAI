@@ -37,6 +37,20 @@ echo ""
 echo -e "\n${CYAN}Step 1: Building production container using Google Cloud Build...${NC}"
 gcloud builds submit --tag "${IMAGE_TAG}" .
 
+# Resolve .env file location and extract active environment variables
+SCRIPT_DIR="$(dirname "$0")"
+if [ -f "${SCRIPT_DIR}/../.env" ]; then
+  ENV_FILE="${SCRIPT_DIR}/../.env"
+elif [ -f "./.env" ]; then
+  ENV_FILE="./.env"
+else
+  echo -e "${RED}Error: .env file not found!${NC}"
+  exit 1
+fi
+
+# Parse .env to extract valid environment variables, excluding empty lines, comments, and the reserved PORT variable
+ENV_VARS_LIST=$(grep -v '^#' "$ENV_FILE" | grep -v '^PORT=' | grep -v '^[[:space:]]*$' | tr '\n' ',' | sed 's/,$//')
+
 # 3. Deploy to Cloud Run
 echo -e "\n${CYAN}Step 2: Deploying container image to Cloud Run...${NC}"
 gcloud run deploy "${SERVICE_NAME}" \
@@ -48,7 +62,7 @@ gcloud run deploy "${SERVICE_NAME}" \
     --cpu 2 \
     --timeout 300 \
     --concurrency 80 \
-    --set-env-vars="DEMO_MODE=true"
+    --set-env-vars="${ENV_VARS_LIST}"
 
 echo -e "\n${GREEN}${BOLD}✔ Deployment complete!${NC}"
 echo -e "Your service has been deployed successfully."

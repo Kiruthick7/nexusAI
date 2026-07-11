@@ -90,6 +90,11 @@ The repository includes pre-built clinical receipts located in the [assets/](fil
    - **Details**: A scenic landscape image containing no textual elements, structured metadata, or clinic headers.
    - **Topological Flow**: The *Intake Agent* performs OCR/vision processing ➔ fails to identify logical receipt bounds or structures ➔ triggers immediate safety/compliance flags ➔ escalates cleanly to the **Human Intervention Queue** to safeguard pipeline operational integrity.
 
+3. **📋 Valid Claim with Human Escalation (`assets/valid_claim_human_approval.png`)**
+   - **Type**: High-expenditure or warning-triggered clinical invoice.
+   - **Details**: A fully valid receipt that successfully extracts all entities, but either has values exceeding automated corporate thresholds or contains verification warning attributes.
+   - **Topological Flow**: Ingested and parsed correctly ➔ Specialists execute parallel checks and trigger threshold warnings ➔ Arbiter aggregates the warning logs ➔ Escalates to the **Human Intervention Queue** with interactive reviewer questionnaire, TTS audio brief playback, and out-of-band auditor reasoning.
+
 ---
 
 ## 🎮 How to Run Mock Demo Simulations
@@ -244,6 +249,8 @@ The Nexus AI FastAPI backend service can be easily compiled, packaged, and scale
    chmod +x scripts/deploy_cloud_run.sh
    ./scripts/deploy_cloud_run.sh
    ```
+   > [!NOTE]
+   > The deployment script automatically detects, parses, and securely injects all active configuration keys (including `GEMINI_API_KEY` and Google Cloud configurations) from your local `backend/.env` file directly into the deployed Cloud Run instance environment variables, eliminating manual config overhead and enabling live, un-degraded AI ingestion runs.
 4. Capture the deployed **Service URL** output at the end (e.g. `https://nexus-backend-hash-uc.a.run.app`).
 
 ### 2. ⚡ Deploy Frontend to Google Cloud Run
