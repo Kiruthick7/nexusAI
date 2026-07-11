@@ -1,103 +1,224 @@
-import Image from "next/image";
+"use client";
+
+import React, { useEffect } from "react";
+import { useStore } from "@/store/useStore";
+import { Navbar } from "@/components/layout/Navbar";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { UploadPanel } from "@/components/dashboard/UploadPanel";
+import { MissionTimeline } from "@/components/dashboard/MissionTimeline";
+import { PlannerCard } from "@/components/dashboard/PlannerCard";
+import { AgentCard } from "@/components/dashboard/AgentCard";
+import { ArbiterCard } from "@/components/dashboard/ArbiterCard";
+import { DecisionPanel } from "@/components/dashboard/DecisionPanel";
+import { AuditTimeline } from "@/components/dashboard/AuditTimeline";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, HeartPulse, CheckSquare } from "lucide-react";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { activeTab, getActiveMission, theme, setTheme } = useStore();
+  const mission = getActiveMission();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Initialize theme on mount
+  useEffect(() => {
+    // If the active mission changes, we can also suggest light or dark theme automatically
+    // for demonstration match with the respective Stitch design!
+    if (mission.id === "NEX-882-901") {
+      setTheme("light");
+    } else {
+      setTheme("dark");
+    }
+  }, [mission.id, setTheme]);
+
+  return (
+    <div className={`flex flex-col h-screen w-full bg-background text-on-surface ${theme}`}>
+      {/* Top Navbar */}
+      <Navbar />
+
+      <div className="flex h-[calc(100vh-64px)] w-full relative z-10">
+        {/* Left Sidebar */}
+        <Sidebar />
+
+        {/* Main Workspace */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-background">
+          <AnimatePresence mode="wait">
+            {activeTab === "orchestration" && (
+              <motion.main
+                key="orchestration"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="flex-1 flex flex-col lg:flex-row p-4 gap-4 overflow-hidden h-full"
+              >
+                {/* LEFT PANEL: Intake & Ingestion */}
+                <UploadPanel />
+
+                {/* CENTER PANEL: Live Orchestration Engine */}
+                <div className="flex-[2] min-w-[360px] flex flex-col gap-4 h-full overflow-hidden">
+                  <div className="flex items-center justify-between px-1 shrink-0">
+                    <h3 className="text-[18px] font-semibold text-on-surface flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></span>
+                      Orchestration Flow
+                    </h3>
+                    <div className="flex items-center gap-2 select-none">
+                      <span className="w-2 h-2 rounded-full bg-error pulse-dot shadow-[0_0_8px_rgba(255,180,171,0.6)]"></span>
+                      <span className="font-mono text-[10px] text-error font-bold uppercase tracking-wider">
+                        {mission.status === "REJECTED" ? "DUPLICATE INTAKE" : "CONFLICT DETECTED"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stage Progress Breadcrumbs */}
+                  <MissionTimeline />
+
+                  {/* Flow Diagram Canvas */}
+                  <div className="glass-panel rounded-lg flex-1 relative overflow-hidden border border-outline-variant/40 flex flex-col items-center justify-start pt-8 pb-4 px-4 shadow-sm select-none">
+                    {/* SVG Connecting Flow Lines (Absolute behind) */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40 z-0">
+                      {/* From Planner (Top center) to Agents (Row below) */}
+                      <path
+                        className="orch-line"
+                        d="M 50% 80 Q 50% 120, 25% 150 T 25% 180"
+                        fill="none"
+                        stroke={theme === "dark" ? "#75db94" : "#515f74"}
+                        strokeWidth="2"
+                      />
+                      <path
+                        className="orch-line"
+                        d="M 50% 80 Q 50% 120, 50% 150 T 50% 180"
+                        fill="none"
+                        stroke={theme === "dark" ? "#ffb77e" : "#006329"}
+                        strokeWidth="2"
+                      />
+                      <path
+                        className="orch-line"
+                        d="M 50% 80 Q 50% 120, 75% 150 T 75% 180"
+                        fill="none"
+                        stroke={theme === "dark" ? "#ffb4ab" : "#ba1a1a"}
+                        strokeWidth="2"
+                      />
+                      {/* From Agents to Arbiter (Bottom center) */}
+                      <path
+                        className="orch-line"
+                        d="M 50% 280 Q 50% 320, 50% 350"
+                        fill="none"
+                        stroke={theme === "dark" ? "#b2c5ff" : "#0053db"}
+                        strokeWidth="2"
+                      />
+                    </svg>
+
+                    {/* Top Planner Agent Node */}
+                    <PlannerCard />
+
+                    {/* Middle Parallel Agents Row */}
+                    <div className="w-full grid grid-cols-3 gap-3 relative z-10 mb-6">
+                      <AgentCard agentKey="provider" />
+                      <AgentCard agentKey="policy" />
+                      <AgentCard agentKey="pattern" />
+                    </div>
+
+                    {/* Bottom Arbiter Resolution console */}
+                    <ArbiterCard />
+                  </div>
+                </div>
+
+                {/* RIGHT PANEL: Decision & Timeline */}
+                <div className="flex-1 min-w-[280px] max-w-sm flex flex-col gap-4 h-full overflow-hidden">
+                  <DecisionPanel />
+                  <AuditTimeline />
+                </div>
+              </motion.main>
+            )}
+
+            {activeTab === "policy" && (
+              <motion.main
+                key="policy"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                className="flex-1 p-8 text-left overflow-y-auto"
+              >
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex items-center gap-3 mb-6 border-b border-outline-variant/50 pb-4">
+                    <ShieldCheck className="w-8 h-8 text-primary" />
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-tight text-on-surface">Policy Auditor</h1>
+                      <p className="text-sm text-on-surface-variant mt-1">Configure and audit corporate policy rules for automated claims adjudication.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="glass-panel p-6 rounded-lg border border-outline-variant/55 flex flex-col gap-2">
+                      <h3 className="text-sm font-bold text-on-surface uppercase tracking-wide">In-Network Max Limit</h3>
+                      <p className="text-xs text-on-surface-variant">Automated trigger to escalate when an in-network provider claims amount exceeds thresholds.</p>
+                      <span className="text-lg font-mono font-bold text-primary mt-2">$5,000.00 / Claim</span>
+                    </div>
+                    <div className="glass-panel p-6 rounded-lg border border-outline-variant/55 flex flex-col gap-2">
+                      <h3 className="text-sm font-bold text-on-surface uppercase tracking-wide">Out-of-Network Max Limit</h3>
+                      <p className="text-xs text-on-surface-variant">Automated trigger to escalate when an out-of-network provider claim exceeds thresholds.</p>
+                      <span className="text-lg font-mono font-bold text-tertiary mt-2">$1,000.00 / Claim</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.main>
+            )}
+
+            {activeTab === "health" && (
+              <motion.main
+                key="health"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                className="flex-1 p-8 text-left overflow-y-auto"
+              >
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex items-center gap-3 mb-6 border-b border-outline-variant/50 pb-4">
+                    <HeartPulse className="w-8 h-8 text-secondary" />
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-tight text-on-surface">System Health</h1>
+                      <p className="text-sm text-on-surface-variant mt-1">Real-time status indicators and metrics for connected LLMs, APIs, and OCR vision engines.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 font-mono">
+                    <div className="glass-panel p-4 rounded-lg border border-outline-variant/30">
+                      <span className="text-[10px] text-on-surface-variant uppercase font-bold">Planner Model</span>
+                      <span className="block text-lg font-bold text-secondary mt-1">ONLINE (100%)</span>
+                    </div>
+                    <div className="glass-panel p-4 rounded-lg border border-outline-variant/30">
+                      <span className="text-[10px] text-on-surface-variant uppercase font-bold">OCR Vision Api</span>
+                      <span className="block text-lg font-bold text-secondary mt-1">ONLINE (99.8%)</span>
+                    </div>
+                    <div className="glass-panel p-4 rounded-lg border border-outline-variant/30">
+                      <span className="text-[10px] text-on-surface-variant uppercase font-bold">Arbitration Agent</span>
+                      <span className="block text-lg font-bold text-secondary mt-1">ACTIVE</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.main>
+            )}
+
+            {activeTab === "settings" && (
+              <motion.main
+                key="settings"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                className="flex-1 p-8 text-left overflow-y-auto"
+              >
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex items-center gap-3 mb-6 border-b border-outline-variant/50 pb-4">
+                    <CheckSquare className="w-8 h-8 text-on-surface-variant" />
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-tight text-on-surface">Admin Settings</h1>
+                      <p className="text-sm text-on-surface-variant mt-1">Manage project variables, administrator accounts, access credentials, and workspace mappings.</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-on-surface-variant">Configure settings here. Integration with security backends will be completed in the next milestone.</p>
+                </div>
+              </motion.main>
+            )}
+          </AnimatePresence>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
